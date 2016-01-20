@@ -19,7 +19,6 @@ namespace SecretHitler {
         /*******************
         ** SERVER METHODS **
         *******************/
-
         // called when a client connects 
         public override void OnServerConnect(NetworkConnection conn) {
 
@@ -79,7 +78,6 @@ namespace SecretHitler {
         /***********************
         ** MATCHMAKER METHODS **
         ***********************/
-
         // called when a match is created
         public override void OnMatchCreate(CreateMatchResponse matchInfo) {
 
