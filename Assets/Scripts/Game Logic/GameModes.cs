@@ -9,7 +9,7 @@ namespace SecretHitler {
         static List<GameMode> GAMEMODES;
 
         public GameModes () {
-            GAMEMODES.Clear();
+            GAMEMODES = new List<GameMode>();
             GAMEMODES.Add(new GameMode(false, false, false, true, true, 1));
             GAMEMODES.Add(new GameMode(false, true, true, false, false, 2));
             GAMEMODES.Add(new GameMode(true, true, true, false, false, 3));
