@@ -5,14 +5,14 @@ using System;
 using System.Threading;
 
 namespace SecretHitler {
-    public class GameModes {
-        static List<GameMode> GAMEMODES;
+    public static class GameModes {
+        public static GameMode[] RULES;
 
-        public GameModes () {
-            GAMEMODES = new List<GameMode>();
-            GAMEMODES.Add(new GameMode(false, false, false, true, true, 1));
-            GAMEMODES.Add(new GameMode(false, true, true, false, false, 2));
-            GAMEMODES.Add(new GameMode(true, true, true, false, false, 3));
+        public static void SetUp () {
+            RULES = new GameMode[3];
+            RULES[0] = new GameMode(false, false, false, true, true, 1);
+            RULES[1] = new GameMode(false, true, true, false, false, 2);
+            RULES[2] = new GameMode(true, true, true, false, false, 3);
         }
     }
 

@@ -6,8 +6,8 @@ using System.Threading;
 
 namespace SecretHitler {
     public class PoliciesDeck {
-        const bool FASCIST = true;
-        const bool LIBERAL = false;
+        public const bool FASCIST = true;
+        public const bool LIBERAL = false;
         const int libCards = 6;
         const int fasCards = 11;
 
