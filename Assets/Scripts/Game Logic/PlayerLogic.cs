@@ -12,15 +12,11 @@ namespace SecretHitler {
         private string name;
         private int id;
 
-        public enum ROLES { Liberal, Fascist, Hitler };
         private ROLES role;
         
-        public enum PLAYERSTATES { Idle, Voting, SelectingChance, PresPolicy, ChanPolicy, Investigate, SpecialElection, PolicyPeek, Assassinate };
         private PLAYERSTATES playerState;
 
         private List<bool> hand;
-        private bool isPres;
-        private bool isChan;
         private bool isDead;
         private bool hasVoted;
         private bool vote;
@@ -31,8 +27,7 @@ namespace SecretHitler {
             this.hand = new List<bool>();
             this.role = ROLES.Liberal;
             this.playerState = PLAYERSTATES.Idle;
-            this.isPres = false;
-            this.isChan = false;
+            this.isDead = false;
         }
 
         public int ID {
@@ -65,21 +60,12 @@ namespace SecretHitler {
             }
         }
 
-        public bool IsPres {
+        public bool IsDead {
             get {
-                return isPres;
+                return isDead;
             }
             set {
-                isPres = value;
-            }
-        }
-
-        public bool IsChan {
-            get {
-                return isChan;
-            }
-            set {
-                isChan = value;
+                isDead = value;
             }
         }
 

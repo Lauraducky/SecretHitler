@@ -6,10 +6,8 @@ using System.Threading;
 
 namespace SecretHitler {
     public static class GameManager {
-        public enum SIZE { SML, MED, LGE};
         public static SIZE gameSize;
-
-        public enum GAMESTATES { NOT_STARTED, SELECTING_CHAN, VOTING, PRES_POLICY, CHAN_POLICY, VETOING, PRES_POWERS, ENDED}
+        
         public static GAMESTATES gameState = GAMESTATES.NOT_STARTED;
 
         private static PoliciesDeck policies = new PoliciesDeck();
@@ -66,17 +64,17 @@ namespace SecretHitler {
 
             int pIndex = 0;
             //Set Hitler
-            players[randomPlayers[pIndex]].Role = PlayerLogic.ROLES.Hitler;
+            players[randomPlayers[pIndex]].Role = ROLES.Hitler;
             pIndex++;
             //Set fascists
             int numFascists = (playercount - 3) / 2;
             while (pIndex < numFascists) {
-                players[randomPlayers[pIndex]].Role = PlayerLogic.ROLES.Fascist;
+                players[randomPlayers[pIndex]].Role = ROLES.Fascist;
                 pIndex++;
             }
             //Set remaining as Liberal
             while (pIndex < playercount) {
-                players[randomPlayers[pIndex]].Role = PlayerLogic.ROLES.Liberal;
+                players[randomPlayers[pIndex]].Role = ROLES.Liberal;
                 pIndex++;
             }
             //Reset deck of cards
@@ -92,36 +90,46 @@ namespace SecretHitler {
             gameState = GAMESTATES.SELECTING_CHAN;
         }
 
+        //----------------------------------GAME LOOP---------------------------------
+
         public static void Update() {
             switch (gameState) {
-                case GAMESTATES.SELECTING_CHAN:
-                    //Check if chancellor has been chosen
-                    //Move to Voting
-                    break;
                 case GAMESTATES.VOTING:
-                    //Check if all votes are in
-                    
-                    //Move to Pres_Policy if success
-                    SetPres();
+                    int voteTotal = 0;
+                    for (int i = 0; i < PlayerCount(); i++) {
+                        if (!players[i].HasVoted)
+                            return;
+                        if (players[i].Vote == Utility.JA)
+                            voteTotal++;
+                        else
+                            voteTotal--;
+                    }
+                    if(voteTotal > 0) {
+                        StartPres_Policy();
+                    } else {
+                        SetPres();
+                    }
                     break;
                 case GAMESTATES.PRES_POLICY:
-                    //Check if Pres hand size is 2
-                    //Move to Chan_Policy
+                    if (players[CurrentPrez].Hand.Count < 3) {
+                        StartChan_Policy();
+                    }
                     break;
                 case GAMESTATES.CHAN_POLICY:
-                    //Check if Chan hand size is 1
-                    //Move to Pres_Powers
+                    if (players[CurrentPrez].Hand.Count < 2) {
+                        bool CardPlayed = players[CurrentChan].Hand[0];
+                        players[CurrentChan].Hand.Clear();
+                        PlayCard(CardPlayed);
+                    }
                     break;
-                case GAMESTATES.PRES_POWERS:
-                    //Pres_Power should resolve self
-                    break;
-                default:
-                    return;
+                case GAMESTATES.VETOING:
+                    //Has the president decided to agree to veto
+                    //Is
                     break;
             }
         }
 
-        private static void SetPres () {
+        private static void SetPres() {
             CurrentPrez = NextPrez;
             SetNewNextPres(CurrentPrez + 1);
             gameState = GAMESTATES.SELECTING_CHAN;
@@ -132,8 +140,132 @@ namespace SecretHitler {
             return NextPrez;
         }
 
+        private static void StartPres_Policy() {
+            players[CurrentPrez].Hand = policies.drawCards(3);
+        }
+
+        private static void StartChan_Policy() {
+            players[CurrentChan].Hand = players[CurrentPrez].Hand;
+        }
+
+        private static void PlayCard(bool c) {
+            gameState = GAMESTATES.PRES_POWERS;
+            PrevChan = CurrentChan;
+            PrevPrez = CurrentPrez;
+
+            if (c == Utility.FASCIST) {
+                Boards.FascistBoards[(int)gameSize].CardsPlayed++;
+                if (Boards.FascistBoards[(int)gameSize].CardsPlayed == Boards.FascistBoards[(int)gameSize].BoardLength()) {
+                    EndGame(Utility.FASCIST);
+                }
+                switch(Boards.FascistBoards[(int)gameSize].GetPower()) {
+                    case POWERS.LoyaltyCheck:
+
+                        break;
+                    case POWERS.SpecialElection:
+
+                        break;
+                    case POWERS.PolicyCheck:
+
+                        break;
+                    case POWERS.Assassination:
+
+                        break;
+                    default:
+                        SetPres();
+                    break;
+                }
+            } else {
+                Boards.LiberalBoard.CardsPlayed++;
+                if (Boards.LiberalBoard.CardsPlayed == Boards.LiberalBoard.BoardLength()) {
+                    EndGame(Utility.LIBERAL);
+                }
+                switch (Boards.LiberalBoard.GetPower()) {
+                    case POWERS.LoyaltyCheck:
+                        
+                        break;
+                    case POWERS.SpecialElection:
+
+                        break;
+                    case POWERS.PolicyCheck:
+
+                        break;
+                    case POWERS.Assassination:
+
+                        break;
+                    default:
+                        SetPres();
+                        break;
+                }
+            }
+        }
+
+        private static void EndGame(bool whoWon) {
+            gameState = GAMESTATES.ENDED;
+        }
+
+        //-----------------------------------ACTIONS----------------------------------
+
+        public static void DiscardCard (int PlayerID, int index) {
+            policies.discard(players[PlayerID].Hand[index]);
+            players[PlayerID].Hand.Remove(players[PlayerID].Hand[index]);
+        }
+
+        public static void KillPlayer(int PlayerID) {
+            //If is hitler, end game
+            //Else, set them as dead and move on
+        }
+
+        public static void ChooseChancellor(int PlayerID) {
+            CurrentChan = PlayerID;
+            gameState = GAMESTATES.VOTING;
+            foreach (PlayerLogic p in players)
+                p.HasVoted = false;
+        }
+
+        public static void ChoosePresident(int PlayerID) {
+            CurrentPrez = PlayerID;
+            gameState = GAMESTATES.SELECTING_CHAN;
+        }
+
+        public static void Vote (int PlayerID, bool vote) {
+            players[PlayerID].Vote = vote;
+        }
+
+        //-----------------------------------UTILITY----------------------------------
+
         public static int PlayerCount() {
             return players.Length;
+        }
+
+        public static int[] ChancellorCandidates() {
+            List<int> candidates = new List<int> ();
+            for(int i = 0; i < PlayerCount(); i++) {
+                if(i != CurrentPrez && i != PrevPrez && i != PrevChan && !players[i].IsDead) {
+                    candidates.Add(i);
+                }
+            }
+            return candidates.ToArray();
+        }
+
+        public static int[] SpecialElectionCandidates() {
+            List<int> candidates = new List<int>();
+            for (int i = 0; i < PlayerCount(); i++) {
+                if (i != CurrentPrez && !players[i].IsDead) {
+                    candidates.Add(i);
+                }
+            }
+            return candidates.ToArray();
+        }
+
+        public static int[] AssassinationList() {
+            List<int> candidates = new List<int>();
+            for (int i = 0; i < PlayerCount(); i++) {
+                if (!players[i].IsDead) {
+                    candidates.Add(i);
+                }
+            }
+            return candidates.ToArray();
         }
     }
 }

@@ -12,20 +12,20 @@ namespace SecretHitler {
         public static void SetUp () {
             FascistBoards = new Board[3];
             FascistBoards[0] = new Board(6);
-                FascistBoards[0].SetPower(3, Board.POWERS.PolicyCheck);
-                FascistBoards[0].SetPower(4, Board.POWERS.Assassination);
-                FascistBoards[0].SetPower(5, Board.POWERS.Assassination);
+                FascistBoards[0].SetPower(3, POWERS.PolicyCheck);
+                FascistBoards[0].SetPower(4, POWERS.Assassination);
+                FascistBoards[0].SetPower(5, POWERS.Assassination);
             FascistBoards[1] = new Board(6);
-                FascistBoards[1].SetPower(2, Board.POWERS.LoyaltyCheck);
-                FascistBoards[1].SetPower(3, Board.POWERS.SpecialElection);
-                FascistBoards[1].SetPower(4, Board.POWERS.Assassination);
-                FascistBoards[1].SetPower(5, Board.POWERS.Assassination);
+                FascistBoards[1].SetPower(2, POWERS.LoyaltyCheck);
+                FascistBoards[1].SetPower(3, POWERS.SpecialElection);
+                FascistBoards[1].SetPower(4, POWERS.Assassination);
+                FascistBoards[1].SetPower(5, POWERS.Assassination);
             FascistBoards[2] = new Board(6);
-                FascistBoards[2].SetPower(1, Board.POWERS.LoyaltyCheck);
-                FascistBoards[2].SetPower(2, Board.POWERS.LoyaltyCheck);
-                FascistBoards[2].SetPower(3, Board.POWERS.SpecialElection);
-                FascistBoards[2].SetPower(4, Board.POWERS.Assassination);
-                FascistBoards[2].SetPower(5, Board.POWERS.Assassination);
+                FascistBoards[2].SetPower(1, POWERS.LoyaltyCheck);
+                FascistBoards[2].SetPower(2, POWERS.LoyaltyCheck);
+                FascistBoards[2].SetPower(3, POWERS.SpecialElection);
+                FascistBoards[2].SetPower(4, POWERS.Assassination);
+                FascistBoards[2].SetPower(5, POWERS.Assassination);
             LiberalBoard = new Board(5);
         }
 
@@ -38,7 +38,6 @@ namespace SecretHitler {
 
     public class Board
     {
-        public enum POWERS { None, PolicyCheck, SpecialElection, LoyaltyCheck, Assassination };
         private POWERS[] spaces;
         private int cardsPlayed;
 
@@ -51,6 +50,18 @@ namespace SecretHitler {
         
         public void SetPower (int position, POWERS power) {
             spaces[position-1] = power;
+        }
+
+        public int BoardLength() {
+            return spaces.Length;
+        }
+
+        public POWERS GetPower() {
+            return spaces[cardsPlayed - 1];
+        }
+
+        public POWERS GetPower (int spaceNum) {
+            return spaces[spaceNum - 1];
         }
 
         public int CardsPlayed {
