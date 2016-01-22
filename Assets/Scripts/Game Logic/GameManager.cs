@@ -5,6 +5,13 @@ using System;
 using System.Threading;
 
 namespace SecretHitler {
+    /// <summary>
+    /// Yet to implement-
+    ///     Election tracker
+    ///     Hitler elected win condition
+    ///     Hitler Knows
+    ///     
+    /// </summary>
     public static class GameManager {
         public static SIZE gameSize;
         
@@ -124,7 +131,7 @@ namespace SecretHitler {
                     break;
                 case GAMESTATES.VETOING:
                     //Has the president decided to agree to veto
-                    //Is
+                    //SetPres if vetoed, PlayCard if not
                     break;
             }
         }
@@ -149,7 +156,6 @@ namespace SecretHitler {
         }
 
         private static void PlayCard(bool c) {
-            gameState = GAMESTATES.PRES_POWERS;
             PrevChan = CurrentChan;
             PrevPrez = CurrentPrez;
 
@@ -158,45 +164,34 @@ namespace SecretHitler {
                 if (Boards.FascistBoards[(int)gameSize].CardsPlayed == Boards.FascistBoards[(int)gameSize].BoardLength()) {
                     EndGame(Utility.FASCIST);
                 }
-                switch(Boards.FascistBoards[(int)gameSize].GetPower()) {
-                    case POWERS.LoyaltyCheck:
-
-                        break;
-                    case POWERS.SpecialElection:
-
-                        break;
-                    case POWERS.PolicyCheck:
-
-                        break;
-                    case POWERS.Assassination:
-
-                        break;
-                    default:
-                        SetPres();
-                    break;
-                }
-            } else {
+                ResolvePowers(Boards.FascistBoards[(int)gameSize].GetPower());
+             } else {
                 Boards.LiberalBoard.CardsPlayed++;
                 if (Boards.LiberalBoard.CardsPlayed == Boards.LiberalBoard.BoardLength()) {
                     EndGame(Utility.LIBERAL);
                 }
-                switch (Boards.LiberalBoard.GetPower()) {
-                    case POWERS.LoyaltyCheck:
-                        
-                        break;
-                    case POWERS.SpecialElection:
+                ResolvePowers (Boards.LiberalBoard.GetPower());
+            }
+        }
 
-                        break;
-                    case POWERS.PolicyCheck:
-
-                        break;
-                    case POWERS.Assassination:
-
-                        break;
-                    default:
-                        SetPres();
-                        break;
-                }
+        private static void ResolvePowers (POWERS p) {
+            switch (p) {
+                case POWERS.LoyaltyCheck:
+                    gameState = GAMESTATES.LOYALTY_CHECK;
+                    break;
+                case POWERS.SpecialElection:
+                    gameState = GAMESTATES.SPECIAL_ELECTION;
+                    break;
+                case POWERS.PolicyCheck:
+                    gameState = GAMESTATES.POLICY_PEEK;
+                    players[CurrentPrez].Hand = policies.showTopThree();
+                    break;
+                case POWERS.Assassination:
+                    gameState = GAMESTATES.ASSASSINATE;
+                    break;
+                default:
+                    SetPres();
+                    break;
             }
         }
 
@@ -213,7 +208,7 @@ namespace SecretHitler {
 
         public static void KillPlayer(int PlayerID) {
             //If is hitler, end game
-            //Else, set them as dead and move on
+            //Else, set them as dead and move on to set next pres
         }
 
         public static void ChooseChancellor(int PlayerID) {
@@ -232,6 +227,11 @@ namespace SecretHitler {
             players[PlayerID].Vote = vote;
         }
 
+        public static void EndPolicyPeek () {
+            players[CurrentPrez].Hand.Clear();
+            SetPres();
+        }
+
         //-----------------------------------UTILITY----------------------------------
 
         public static int PlayerCount() {
@@ -241,7 +241,23 @@ namespace SecretHitler {
         public static int[] ChancellorCandidates() {
             List<int> candidates = new List<int> ();
             for(int i = 0; i < PlayerCount(); i++) {
-                if(i != CurrentPrez && i != PrevPrez && i != PrevChan && !players[i].IsDead) {
+                if (PlayerCount() > 5) {
+                    if (i != CurrentPrez && i != PrevPrez && i != PrevChan && !players[i].IsDead) {
+                        candidates.Add(i);
+                    }
+                } else {
+                    if (i != CurrentPrez && i != PrevChan && !players[i].IsDead) {
+                        candidates.Add(i);
+                    }
+                }
+            }
+            return candidates.ToArray();
+        }
+
+        public static int[] LoyaltyCheckList() {
+            List<int> candidates = new List<int>();
+            for (int i = 0; i < PlayerCount(); i++) {
+                if (i != CurrentPrez && !players[i].IsDead) {
                     candidates.Add(i);
                 }
             }
