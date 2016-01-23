@@ -8,7 +8,7 @@ namespace SecretHitler {
 
     public enum ROLES { Liberal, Fascist, Hitler };
     public enum PLAYERSTATES { Idle, Voting, SelectingChance, PresPolicy, ChanPolicy, Investigate, SpecialElection, PolicyPeek, Assassinate };
-    public enum GAMESTATES { NOT_STARTED, SELECTING_CHAN, VOTING, PRES_POLICY, CHAN_POLICY, VETOING, LOYALTY_CHECK, SPECIAL_ELECTION, POLICY_PEEK, ASSASSINATE, ENDED };
+    public enum GAMESTATES { NOT_STARTED, READING_ROLES, SELECTING_CHAN, VOTING, PRES_POLICY, CHAN_POLICY, VETOING, LOYALTY_CHECK, SPECIAL_ELECTION, POLICY_PEEK, ASSASSINATE, ENDED };
     public enum SIZE { SML, MED, LGE };
     public enum POWERS { None, PolicyCheck, SpecialElection, LoyaltyCheck, Assassination };
 

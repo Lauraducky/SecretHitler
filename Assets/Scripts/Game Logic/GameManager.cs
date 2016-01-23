@@ -5,13 +5,7 @@ using System;
 using System.Threading;
 
 namespace SecretHitler {
-    /// <summary>
-    /// Yet to implement-
-    ///     Election tracker
-    ///     Hitler elected win condition
-    ///     Hitler Knows
-    ///     
-    /// </summary>
+    
     public static class GameManager {
         public static SIZE gameSize;
         
@@ -26,6 +20,9 @@ namespace SecretHitler {
         private static int NextPrez = -1;     // For president cycle
         private static int PrevChan = -1;     // For selecting chancellor
         private static int CurrentChan = -1;  // For Passing cards
+
+        private static int ElectionTracker = 0;
+        private static bool HitlerKnows = false;
 
         /// <summary>
         /// Adds player to array of players, will fail if game has already started
@@ -54,53 +51,66 @@ namespace SecretHitler {
             int playercount = PlayerCount();
             if (playercount < 5)
                 return; // Too few players
-            else if (playercount < 7)
+            else if (playercount < 7) {
                 gameSize = SIZE.SML;
-            else if (playercount < 9)
+                HitlerKnows = true;
+            } else if (playercount < 9) {
                 gameSize = SIZE.MED;
-            else if (playercount < 11)
+                HitlerKnows = false;
+            } else if (playercount < 11) {
                 gameSize = SIZE.LGE;
-            else
+                HitlerKnows = false;
+            } else
                 return; // Too many players
 
-            int[] randomPlayers = new int[playercount];
-            for(int i = 0; i < playercount; i++) {
-                randomPlayers[i] = i;
-            }
-            randomPlayers.Shuffle();
+                int[] randomPlayers = new int[playercount];
+                for (int i = 0; i < playercount; i++) {
+                    randomPlayers[i] = i;
+                }
+                randomPlayers.Shuffle();
 
-            int pIndex = 0;
-            //Set Hitler
-            players[randomPlayers[pIndex]].Role = ROLES.Hitler;
-            pIndex++;
-            //Set fascists
-            int numFascists = (playercount - 3) / 2;
-            while (pIndex < numFascists) {
-                players[randomPlayers[pIndex]].Role = ROLES.Fascist;
+                int pIndex = 0;
+                //Set Hitler
+                players[randomPlayers[pIndex]].Role = ROLES.Hitler;
                 pIndex++;
-            }
-            //Set remaining as Liberal
-            while (pIndex < playercount) {
-                players[randomPlayers[pIndex]].Role = ROLES.Liberal;
-                pIndex++;
-            }
-            //Reset deck of cards
-            policies = new PoliciesDeck();
-            //Clear boards
-            Boards.ClearAll();
-            //Randomly select president
-            System.Random rand = new System.Random();
-            CurrentPrez = rand.Next(0, playercount - 1);
-            SetNewNextPres(CurrentPrez+1);
-            //No need to make users communicate roles, as info will be available on devices
+                //Set fascists
+                int numFascists = (playercount - 3) / 2;
+                while (pIndex < numFascists) {
+                    players[randomPlayers[pIndex]].Role = ROLES.Fascist;
+                    pIndex++;
+                }
+                //Set remaining as Liberal
+                while (pIndex < playercount) {
+                    players[randomPlayers[pIndex]].Role = ROLES.Liberal;
+                    pIndex++;
+                }
+                //Reset deck of cards
+                policies = new PoliciesDeck();
+                //Clear boards
+                Boards.ClearAll();
+                //Randomly select president
+                System.Random rand = new System.Random();
+                CurrentPrez = rand.Next(0, playercount - 1);
+                SetNewNextPres(CurrentPrez + 1);
+                //No need to make users communicate roles, as info will be available on devices
 
-            gameState = GAMESTATES.SELECTING_CHAN;
-        }
+                gameState = GAMESTATES.READING_ROLES;
+            }
 
         //----------------------------------GAME LOOP---------------------------------
 
         public static void Update() {
             switch (gameState) {
+                case GAMESTATES.READING_ROLES:
+                    bool done = true;
+                    for (int i = 0; i < PlayerCount(); i++) {
+                        if (!players[i].HasVoted)
+                            done = false;
+                    }
+                    if (done) {
+                        gameState = GAMESTATES.SELECTING_CHAN;
+                    }
+                    break;
                 case GAMESTATES.VOTING:
                     int voteTotal = 0;
                     for (int i = 0; i < PlayerCount(); i++) {
@@ -112,9 +122,18 @@ namespace SecretHitler {
                             voteTotal--;
                     }
                     if(voteTotal > 0) {
-                        StartPres_Policy();
+                        if (players[CurrentChan].Role == ROLES.Hitler && Boards.FascistBoards[(int)gameSize].CardsPlayed >= 3) {
+                            EndGame(Utility.FASCIST);
+                        } else {
+                            StartPres_Policy();
+                        }
                     } else {
-                        SetPres();
+                        ElectionTracker++;
+                        if (ElectionTracker > 3) {
+                            AutoPlayCard(policies.drawCards(1)[0]);
+                        } else {
+                            SetPres();
+                        }
                     }
                     break;
                 case GAMESTATES.PRES_POLICY:
@@ -128,10 +147,6 @@ namespace SecretHitler {
                         players[CurrentChan].Hand.Clear();
                         PlayCard(CardPlayed);
                     }
-                    break;
-                case GAMESTATES.VETOING:
-                    //Has the president decided to agree to veto
-                    //SetPres if vetoed, PlayCard if not
                     break;
             }
         }
@@ -163,15 +178,42 @@ namespace SecretHitler {
                 Boards.FascistBoards[(int)gameSize].CardsPlayed++;
                 if (Boards.FascistBoards[(int)gameSize].CardsPlayed == Boards.FascistBoards[(int)gameSize].BoardLength()) {
                     EndGame(Utility.FASCIST);
+                } else {
+                    ResolvePowers(Boards.FascistBoards[(int)gameSize].GetPower());
                 }
-                ResolvePowers(Boards.FascistBoards[(int)gameSize].GetPower());
              } else {
                 Boards.LiberalBoard.CardsPlayed++;
                 if (Boards.LiberalBoard.CardsPlayed == Boards.LiberalBoard.BoardLength()) {
                     EndGame(Utility.LIBERAL);
+                } else {
+                    ResolvePowers(Boards.LiberalBoard.GetPower());
                 }
-                ResolvePowers (Boards.LiberalBoard.GetPower());
             }
+
+            ElectionTracker = 1;
+        }
+
+        private static void AutoPlayCard(bool c) {
+            PrevChan = -1;
+            PrevPrez = -1;
+
+            if (c == Utility.FASCIST) {
+                Boards.FascistBoards[(int)gameSize].CardsPlayed++;
+                if (Boards.FascistBoards[(int)gameSize].CardsPlayed == Boards.FascistBoards[(int)gameSize].BoardLength()) {
+                    EndGame(Utility.FASCIST);
+                } else {
+                    SetPres();
+                }
+            } else {
+                Boards.LiberalBoard.CardsPlayed++;
+                if (Boards.LiberalBoard.CardsPlayed == Boards.LiberalBoard.BoardLength()) {
+                    EndGame(Utility.LIBERAL);
+                } else {
+                    SetPres();
+                }
+            }
+
+            ElectionTracker = 1;
         }
 
         private static void ResolvePowers (POWERS p) {
@@ -207,8 +249,12 @@ namespace SecretHitler {
         }
 
         public static void KillPlayer(int PlayerID) {
-            //If is hitler, end game
-            //Else, set them as dead and move on to set next pres
+            players[PlayerID].IsDead = true;
+            if(players[PlayerID].Role == ROLES.Hitler) {
+                EndGame(Utility.LIBERAL);
+            } else {
+                SetPres();
+            }
         }
 
         public static void ChooseChancellor(int PlayerID) {
@@ -227,6 +273,22 @@ namespace SecretHitler {
             players[PlayerID].Vote = vote;
         }
 
+        public static void StartVeto() {
+            gameState = GAMESTATES.VETOING;
+        }
+
+        public static void EndVeto(bool Vote) {
+            if (Vote == Utility.JA) {
+                policies.discard(players[CurrentChan].Hand[0]);
+                policies.discard(players[CurrentChan].Hand[1]);
+                players[CurrentChan].Hand.Clear();
+                ElectionTracker++;
+                SetPres();
+            } else {
+                gameState = GAMESTATES.CHAN_POLICY;
+            }
+        }
+
         public static void EndPolicyPeek () {
             players[CurrentPrez].Hand.Clear();
             SetPres();
@@ -236,6 +298,20 @@ namespace SecretHitler {
 
         public static int PlayerCount() {
             return players.Length;
+        }
+
+        public static int[] GetFascistList(int ID) {
+            List<int> fascists = new List<int>();
+            if(players[ID].Role == ROLES.Liberal || players[ID].Role == ROLES.Hitler && !HitlerKnows) {
+                fascists.Add(ID);
+                return fascists.ToArray();
+            }
+            for (int i = 0; i < PlayerCount(); i++) {
+                if (players[i].Role >= ROLES.Fascist) {
+                    fascists.Add(i);
+                }
+            }
+            return fascists.ToArray();
         }
 
         public static int[] ChancellorCandidates() {
